@@ -1,32 +1,30 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\SuratMasukController;
 use App\Http\Controllers\SuratKeluarController;
 
+// Halaman utama diarahkan ke login
 Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+// Route Autentikasi Tamu (Guest)
+Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('login', [LoginController::class, 'login'])->name('login.submit');
+Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+
+// Route yang hanya bisa diakses setelah login
+Route::middleware(['auth'])->group(function () {
+    // Dashboard umum untuk semua user yang sudah login (petugas & pembaca)
+    Route::get('/dashboard', function () {
     return view('layouts.dashboard');
-})->name('dashboard');
+    })->name('dashboard');
 
-// //route dasar
-// Route::get('/surat-masuk', function () {
-//     return ('halaman surat masuk');
-// })->name ('surat-masuk.index');
-
-// // route dengan parameter
-// Route::get('/surat-masuk/{id}', function ($id) {
-//     return 'Detail surat masuk dengan ID: ' . $id;
-// })->name ('surat-masuk.show');
-
-// route dengan parameter
-Route::get('/surat-masuk', [SuratMasukController:: class,'index'])
-->name ('surat-masuk.index');
-
-Route::get('/surat-masuk/{id}', [SuratMasukController:: class,'show'])
-->name ('surat-masuk.show');
-
-Route::get('/surat-keluar', [SuratKeluarController::class, 'index'])
-    ->name('surat-keluar.index');
-
-Route::get('/surat-keluar/{id}', [SuratKeluarController::class, 'show'])
-    ->name('surat-keluar.show');
+    // Route khusus Petugas (CRUD Surat)
+    Route::middleware(['can:manage-letters'])->group(function () {
+        Route::resource('surat-masuk', SuratMasukController::class);
+        Route::resource('surat-keluar', SuratKeluarController::class);
+    });
+});
